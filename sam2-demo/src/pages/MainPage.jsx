@@ -5,6 +5,15 @@ export default function Component() {
   const [coordinates, setCoordinates] = useState(null)
   const imageRef = useRef(null)
 
+  const handleImageClick = (event) => {
+    if (imageRef.current) {
+      const rect = imageRef.current.getBoundingClientRect()
+      const x = Math.round(event.clientX - rect.left)
+      const y = Math.round(event.clientY - rect.top)
+      setCoordinates({ x, y })
+    }
+  }
+
   const handleFileChange = (event) => {
     const file = event.target.files[0]
     if (file) {
@@ -42,8 +51,8 @@ export default function Component() {
             <img
               src={image}
               alt="Uploaded image"
-              //onClick={handleImageClick}
-              //ref={imageRef}
+              onClick={handleImageClick}
+              ref={imageRef}
               className="max-w-full h-auto rounded-lg shadow-lg cursor-crosshair"
             />
             
