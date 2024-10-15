@@ -55,7 +55,11 @@ export default function Component() {
               ref={imageRef}
               className="max-w-full h-auto rounded-lg shadow-lg cursor-crosshair"
             />
-            
+        {coordinates && (
+          <span className="absolute bottom-0 left-0 bg-black bg-opacity-70 text-white px-3 py-2 rounded-br-lg text-sm">
+            Coordinates: ({coordinates.x}, {coordinates.y})
+          </span>
+        )}
           </div>
         )}
       </main>
