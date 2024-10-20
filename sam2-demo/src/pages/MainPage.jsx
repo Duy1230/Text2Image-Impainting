@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import axios from 'axios'
+import axiosInstance from '../axiosInstance'
 
 export default function Component() {
   const [image, setImage] = useState(null)
@@ -16,19 +16,29 @@ export default function Component() {
     }
   }
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0]
     if (file) {
       const reader = new FileReader()
       reader.onload = (e) => setImage(e.target.result)
       reader.readAsDataURL(file)
+
+      const formData = new FormData()
+      formData.append('image', file)
+      try {
+        const response = await axiosInstance.post('/sam2/add-image', formData)
+        console.log(response.data.message)
+        setApiResponse(response.data.message)
+      } catch (error) {
+        console.error('Error uploading image:', error)
+        setApiResponse('Error uploading image')
+      }
     }
   }
 
   const handleApiCall = async () => {
     try {
-      // Replace this URL with the ngrok URL you get from Colab
-      const response = await axios.get('https://b3a4-34-125-159-108.ngrok-free.app', {headers: {"ngrok-skip-browser-warning": "69420"}})
+      const response = await axiosInstance.get('/sam2/')
       console.log(response.data)
       setApiResponse(response.data.message)
     } catch (error) {
