@@ -17,9 +17,18 @@ class SAM2:
     def __init__(self, model_name: str = "facebook/sam2-hiera-tiny"):
         self.predictor = SAM2ImagePredictor.from_pretrained(model_name)
 
-    def set_image(self, base64_string):
-        self.image = base64_to_image(base64_string)
-        self.predictor.set_image(self.image)
+    def set_image(self, image_bytes: bytes):
+        """
+        Set the image from raw bytes.
+
+        Parameters:
+        - image_bytes (bytes): The image data in bytes.
+        """
+        try:
+            self.image = Image.open(BytesIO(image_bytes))
+            self.predictor.set_image(self.image)
+        except Exception as e:
+            raise ValueError(f"Failed to set image: {e}")
 
     def segment(self, coordinate: np.ndarray, label: np.ndarray):
         masks, scores, logits = self.predictor.predict(
@@ -91,3 +100,6 @@ class SAM2:
         blended = np.clip(blended, 0, 255).astype(np.uint8)
 
         return blended
+
+
+sam2_model = SAM2()
