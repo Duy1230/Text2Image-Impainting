@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse, Response
 from fastapi import File, Form, UploadFile
+from pydantic import BaseModel
 from io import BytesIO
 from PIL import Image
 from model.sam2 import sam2_model
@@ -16,17 +17,21 @@ async def root():
     return {"message": "Hello World"}
 
 
+class SegmentRequest(BaseModel):
+    x: int
+    y: int
+
+
 @router.post("/segment")
 async def segment_image(
-    image: UploadFile = File(...),
-    x: int = Form(...),
-    y: int = Form(...)
+    request: SegmentRequest
 ):
     # segment image using SAM2 model
-    sam2_model.segment(np.array([[x, y]]), np.array([1]))
-
+    sam2_model.segment(np.array([[request.x, request.y]]), np.array([1]))
+    print("segmented image shape: ", np.array(sam2_model.image).shape)
+    print("segmented masks shape: ", np.array(sam2_model.masks).shape)
     # apply blue mask to image
-    applied_mask = sam2_model.apply_bluer_mask(image)
+    applied_mask = sam2_model.apply_bluer_mask()
 
     # Convert numpy array to PIL Image
     pil_image = Image.fromarray(applied_mask.astype('uint8'), 'RGB')

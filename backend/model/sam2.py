@@ -34,6 +34,7 @@ class SAM2:
         masks, scores, logits = self.predictor.predict(
             point_coords=coordinate,
             point_labels=label,
+            multimask_output=False
         )
         self.masks = masks
         self.scores = scores
@@ -58,36 +59,42 @@ class SAM2:
                 mask_image, contours, -1, (1, 1, 1, 0.5), thickness=2)
         return mask_image
 
-    def apply_bluer_mask(self, mask: np.ndarray, image: np.ndarray, alpha: float = 0.5) -> np.ndarray:
+    def apply_bluer_mask(self, alpha: float = 0.5) -> np.ndarray:
         """
         Apply a semi-transparent blue overlay to the regions of the image where the mask is 1.
 
         Parameters:
-        - mask (np.ndarray): A numpy array of shape (1, H, W) with binary values.
-        - image (np.ndarray): A numpy array of shape (H, W, 3) representing the RGB image.
         - alpha (float): Transparency factor for the blue overlay. Default is 0.5.
 
         Returns:
         - np.ndarray: The RGB image with the blue overlay applied where mask == 1.
         """
-        if mask.shape[0] != 1:
+        # Ensure self.image is a NumPy array
+        if isinstance(self.image, Image.Image):
+            image_np = np.array(self.image)
+        elif isinstance(self.image, np.ndarray):
+            image_np = self.image
+        else:
+            raise TypeError("self.image must be a PIL Image or a NumPy array")
+
+        if self.masks.shape[0] != 1:
             raise ValueError("Mask should have shape (1, H, W)")
-        if image.shape[2] != 3:
+        if image_np.shape[2] != 3:
             raise ValueError("Image should have shape (H, W, 3)")
-        if mask.shape[1:] != image.shape[:2]:
+        if self.masks.shape[1:] != image_np.shape[:2]:
             raise ValueError("Mask and image spatial dimensions must match")
         if not (0 <= alpha <= 1):
             raise ValueError("Alpha must be between 0 and 1")
 
         # Copy the image to avoid modifying the original
-        blended = image.copy().astype(np.float32)
+        blended = image_np.copy().astype(np.float32)
 
         # Create a blue overlay
         blue_overlay = np.zeros_like(blended)
         blue_overlay[:, :, 2] = 255  # Set blue channel to maximum
 
         # Expand mask to match image channels
-        mask_expanded = mask[0, :, :, np.newaxis]  # Shape: (H, W, 1)
+        mask_expanded = self.masks[0, :, :, np.newaxis]  # Shape: (H, W, 1)
 
         # Apply the overlay only where mask == 1
         blended = np.where(

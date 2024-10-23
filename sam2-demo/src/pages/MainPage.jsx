@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import axiosInstance from '../axiosInstance'
 
 export default function Component() {
@@ -7,12 +7,36 @@ export default function Component() {
   const [apiResponse, setApiResponse] = useState(null)
   const imageRef = useRef(null)
 
-  const handleImageClick = (event) => {
+  useEffect(() => {
+    // Cleanup the object URL when the component unmounts or image changes
+    return () => {
+      if (image) {
+        URL.revokeObjectURL(image)
+      }
+    }
+  }, [image])
+
+  const handleImageClick = async (event) => {
     if (imageRef.current) {
       const rect = imageRef.current.getBoundingClientRect()
       const x = Math.round(event.clientX - rect.left)
       const y = Math.round(event.clientY - rect.top)
       setCoordinates({ x, y })
+      console.log("clicked coordinates: ", x, y)
+
+      try {
+        // Make the API call with responseType 'blob'
+        const response = await axiosInstance.post('/sam2/segment', { x, y }, { responseType: 'blob' })
+        
+        // Create a URL from the Blob
+        const imageUrl = URL.createObjectURL(response.data)
+        
+        // Update the image state with the new URL
+        setImage(imageUrl)
+      } catch (error) {
+        console.error('Error segmenting image:', error)
+        setApiResponse('Error segmenting image')
+      }
     }
   }
 
