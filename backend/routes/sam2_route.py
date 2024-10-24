@@ -18,16 +18,18 @@ async def root():
 
 
 class SegmentRequest(BaseModel):
-    x: int
-    y: int
+    normalized_x: float
+    normalized_y: float
 
 
 @router.post("/segment")
 async def segment_image(
     request: SegmentRequest
 ):
+
     # segment image using SAM2 model
-    sam2_model.segment(np.array([[request.x, request.y]]), np.array([1]))
+    sam2_model.segment(
+        np.array([[request.normalized_x, request.normalized_y]]), np.array([1]))
     print("segmented image shape: ", np.array(sam2_model.image).shape)
     print("segmented masks shape: ", np.array(sam2_model.masks).shape)
     # apply blue mask to image

@@ -21,7 +21,11 @@ export default function Component() {
       const rect = imageRef.current.getBoundingClientRect()
       const x = Math.round(event.clientX - rect.left)
       const y = Math.round(event.clientY - rect.top)
-      setCoordinates({ x, y })
+
+      //normalize the coordinates to 0-1
+      const normalizedX = x / rect.width
+      const normalizedY = y / rect.height
+      setCoordinates({ x: normalizedX, y: normalizedY })
       console.log("clicked coordinates: ", x, y)
 
       try {

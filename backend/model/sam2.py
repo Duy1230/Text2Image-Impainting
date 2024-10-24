@@ -31,8 +31,10 @@ class SAM2:
             raise ValueError(f"Failed to set image: {e}")
 
     def segment(self, coordinate: np.ndarray, label: np.ndarray):
+        image_width, image_height = self.image.size
+        coordinate = coordinate * np.array([image_width, image_height])
         masks, scores, logits = self.predictor.predict(
-            point_coords=coordinate,
+            point_coords=coordinate.astype(np.int8),
             point_labels=label,
             multimask_output=False
         )
