@@ -19,18 +19,19 @@ export default function Component() {
   const handleImageClick = async (event) => {
     if (imageRef.current) {
       const rect = imageRef.current.getBoundingClientRect()
-      const x = Math.round(event.clientX - rect.left)
-      const y = Math.round(event.clientY - rect.top)
+      const normalizedX = Math.round(event.clientX - rect.left) / rect.width
+      const normalizedY = Math.round(event.clientY - rect.top) / rect.height
 
-      //normalize the coordinates to 0-1
-      const normalizedX = x / rect.width
-      const normalizedY = y / rect.height
+
       setCoordinates({ x: normalizedX, y: normalizedY })
-      console.log("clicked coordinates: ", x, y)
+      console.log("clicked coordinates: ", normalizedX, normalizedY)
 
       try {
-        // Make the API call with responseType 'blob'
-        const response = await axiosInstance.post('/sam2/segment', { x, y }, { responseType: 'blob' })
+        // Update the field names to match the backend SegmentRequest model
+        const response = await axiosInstance.post('/sam2/segment', {
+          normalized_x: normalizedX,
+          normalized_y: normalizedY
+        }, { responseType: 'blob' })
         
         // Create a URL from the Blob
         const imageUrl = URL.createObjectURL(response.data)

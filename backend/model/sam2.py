@@ -34,13 +34,14 @@ class SAM2:
         image_width, image_height = self.image.size
         coordinate = coordinate * np.array([image_width, image_height])
         masks, scores, logits = self.predictor.predict(
-            point_coords=coordinate.astype(np.int8),
+            point_coords=coordinate.astype(np.int16),
             point_labels=label,
             multimask_output=False
         )
         self.masks = masks
         self.scores = scores
         self.logits = logits
+        return coordinate
 
     def show_mask(self, random_color=False, borders=True):
         if random_color:
