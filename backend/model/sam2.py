@@ -3,6 +3,9 @@ import base64
 from io import BytesIO
 from PIL import Image
 from sam2.sam2_image_predictor import SAM2ImagePredictor
+from torchvision.ops import box_convert
+import logging
+import torch
 import cv2  # Ensure OpenCV is imported for the new function
 
 predictor = SAM2ImagePredictor.from_pretrained("facebook/sam2-hiera-tiny")
@@ -44,16 +47,20 @@ class SAM2:
         return coordinate
 
     def segment_from_boxes(self, boxes: np.ndarray):
+        image_width, image_height = self.image.size
+        boxes = torch.tensor(
+            boxes) * torch.tensor([image_width, image_height, image_width, image_height])
+        xyxy = box_convert(boxes, "xywh", "xyxy").numpy()
         masks, scores, logits = self.predictor.predict(
             point_coords=None,
             point_labels=None,
-            box=boxes,
+            box=xyxy,
             multimask_output=False
         )
         self.masks = masks
         self.scores = scores
         self.logits = logits
-        return boxes
+        return xyxy
 
     def show_mask(self, random_color=False, borders=True):
         if random_color:
