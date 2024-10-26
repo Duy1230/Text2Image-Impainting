@@ -43,6 +43,18 @@ class SAM2:
         self.logits = logits
         return coordinate
 
+    def segment_from_boxes(self, boxes: np.ndarray):
+        masks, scores, logits = self.predictor.predict(
+            point_coords=None,
+            point_labels=None,
+            box=boxes,
+            multimask_output=False
+        )
+        self.masks = masks
+        self.scores = scores
+        self.logits = logits
+        return boxes
+
     def show_mask(self, random_color=False, borders=True):
         if random_color:
             color = np.concatenate(
