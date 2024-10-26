@@ -16,7 +16,7 @@ class GroundingDINO:
         self.logits = None
         self.phrases = None
 
-    def set_image(self, image: bytes):
+    def set_image(self, image_bytes: bytes):
         transform = T.Compose(
             [
                 T.RandomResize([800], max_size=1333),
@@ -24,7 +24,7 @@ class GroundingDINO:
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
-        image_source = Image.open(BytesIO(image)).convert("RGB")
+        image_source = Image.open(BytesIO(image_bytes)).convert("RGB")
         image_transformed, _ = transform(image_source, None)
         self.image_transformed = image_transformed
 
