@@ -47,7 +47,7 @@ class GroundingDINO:
         return self.logits.tolist()
 
     def get_phrases(self):
-        return self.phrases.tolist()
+        return self.phrases
 
 
 groundingdino_model = GroundingDINO()

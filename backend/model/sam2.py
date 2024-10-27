@@ -48,9 +48,21 @@ class SAM2:
 
     def segment_from_boxes(self, boxes: np.ndarray):
         image_width, image_height = self.image.size
+        # First denormalize
         boxes = torch.tensor(
             boxes) * torch.tensor([image_width, image_height, image_width, image_height])
-        xyxy = box_convert(boxes, "xywh", "xyxy").numpy()
+
+        # Convert from (centerx, centery, w, h) to (x1, y1, w, h)
+        boxes_corner = torch.zeros_like(boxes)
+        boxes_corner[:, 0] = boxes[:, 0] - \
+            boxes[:, 2] / 2  # x1 = centerx - width/2
+        boxes_corner[:, 1] = boxes[:, 1] - \
+            boxes[:, 3] / 2  # y1 = centery - height/2
+        boxes_corner[:, 2:] = boxes[:, 2:]  # width and height remain same
+
+        # Convert to xyxy format
+        xyxy = box_convert(boxes_corner, "xywh", "xyxy").numpy()
+
         masks, scores, logits = self.predictor.predict(
             point_coords=None,
             point_labels=None,
@@ -81,15 +93,17 @@ class SAM2:
                 mask_image, contours, -1, (1, 1, 1, 0.5), thickness=2)
         return mask_image
 
-    def apply_bluer_mask(self, alpha: float = 0.5) -> np.ndarray:
+    def apply_bluer_mask(self, alpha: float | list[float] = 0.5) -> np.ndarray:
         """
-        Apply a semi-transparent blue overlay to the regions of the image where the mask is 1.
+        Apply semi-transparent blue overlays to the regions of the image where masks are 1.
 
         Parameters:
-        - alpha (float): Transparency factor for the blue overlay. Default is 0.5.
+        - alpha (float | list[float]): Transparency factor(s) for the blue overlay.
+            If float: Same alpha applied to all masks. If list: One alpha per mask.
+            Default is 0.5.
 
         Returns:
-        - np.ndarray: The RGB image with the blue overlay applied where mask == 1.
+        - np.ndarray: The RGB image with blue overlays applied where masks == 1.
         """
         # Ensure self.image is a NumPy array
         if isinstance(self.image, Image.Image):
@@ -99,14 +113,29 @@ class SAM2:
         else:
             raise TypeError("self.image must be a PIL Image or a NumPy array")
 
-        if self.masks.shape[0] != 1:
-            raise ValueError("Mask should have shape (1, H, W)")
+        # Handle different mask shapes
+        masks = self.masks
+        if len(masks.shape) == 4:  # Shape is (N, 1, H, W)
+            masks = masks.squeeze(1)  # Reshape to (N, H, W)
+
         if image_np.shape[2] != 3:
             raise ValueError("Image should have shape (H, W, 3)")
-        if self.masks.shape[1:] != image_np.shape[:2]:
+        if masks.shape[1:] != image_np.shape[:2]:
+            print(masks.shape[1:], image_np.shape[:2])
             raise ValueError("Mask and image spatial dimensions must match")
-        if not (0 <= alpha <= 1):
-            raise ValueError("Alpha must be between 0 and 1")
+
+        # Handle alpha values
+        n_masks = masks.shape[0]
+        if isinstance(alpha, (int, float)):
+            alphas = [alpha] * n_masks
+        else:
+            if len(alpha) != n_masks:
+                raise ValueError(
+                    "Number of alpha values must match number of masks")
+            alphas = alpha
+
+        if not all(0 <= a <= 1 for a in alphas):
+            raise ValueError("All alpha values must be between 0 and 1")
 
         # Copy the image to avoid modifying the original
         blended = image_np.copy().astype(np.float32)
@@ -115,15 +144,14 @@ class SAM2:
         blue_overlay = np.zeros_like(blended)
         blue_overlay[:, :, 2] = 255  # Set blue channel to maximum
 
-        # Expand mask to match image channels
-        mask_expanded = self.masks[0, :, :, np.newaxis]  # Shape: (H, W, 1)
-
-        # Apply the overlay only where mask == 1
-        blended = np.where(
-            mask_expanded == 1,
-            (1 - alpha) * blended + alpha * blue_overlay,
-            blended
-        )
+        # Apply overlay for each mask with its corresponding alpha
+        for mask, alpha in zip(masks, alphas):
+            mask_expanded = mask[:, :, np.newaxis]  # Shape: (H, W, 1)
+            blended = np.where(
+                mask_expanded == 1,
+                (1 - alpha) * blended + alpha * blue_overlay,
+                blended
+            )
 
         # Ensure the pixel values are in the valid range
         blended = np.clip(blended, 0, 255).astype(np.uint8)
