@@ -16,31 +16,38 @@ class AdvancedInpaintingPipeline:
     def __init__(self, device="cuda"):
         self.device = device
 
-        # Initialize SDXL
+        # Enable memory efficient attention
         self.inpaint_pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
             "stabilityai/stable-diffusion-xl-base-1.0",
             torch_dtype=torch.float16,
-            variant="fp16"
+            variant="fp16",
+            use_safetensors=True,
+            attention_mode="xformers"  # Enable memory efficient attention
         ).to(device)
+
+        # Enable memory optimization
+        self.inpaint_pipe.enable_model_cpu_offload()
+        self.inpaint_pipe.enable_vae_slicing()
 
         # Use DDIM scheduler for better quality
         self.inpaint_pipe.scheduler = DDIMScheduler.from_config(
             self.inpaint_pipe.scheduler.config
         )
 
-        # Initialize CLIP
+        # Move CLIP to CPU and only transfer to GPU when needed
         self.clip_model = CLIPModel.from_pretrained(
-            "openai/clip-vit-large-patch14"
-        ).to(device)
+            "openai/clip-vit-large-patch14",
+            torch_dtype=torch.float16
+        ).cpu()
         self.clip_processor = CLIPProcessor.from_pretrained(
             "openai/clip-vit-large-patch14"
         )
 
-        # Initialize ControlNet
+        # Enable CPU offload for ControlNet
         self.controlnet = ControlNetModel.from_pretrained(
             "lllyasviel/control_v11p_sd15_inpaint",
             torch_dtype=torch.float16
-        ).to(device)
+        ).cpu()
 
         # Initialize image
         self.source_image = None
@@ -108,7 +115,7 @@ class AdvancedInpaintingPipeline:
         prompt: str,
         output_size: tuple = None,  # New parameter
         model_size: int = 1024,     # SDXL default size
-        num_inference_steps: int = 50,
+        num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
         num_samples: int = 1
     ):
@@ -166,6 +173,9 @@ class AdvancedInpaintingPipeline:
 
     def get_clip_score(self, image: Image.Image, prompt: str):
         """Calculate CLIP score between image and prompt."""
+        # Move model to GPU temporarily
+        self.clip_model.to(self.device)
+
         inputs = self.clip_processor(
             images=image,
             text=[prompt],
@@ -176,6 +186,10 @@ class AdvancedInpaintingPipeline:
         with torch.no_grad():
             outputs = self.clip_model(**inputs)
             score = outputs.logits_per_image[0].item()
+
+        # Move model back to CPU
+        self.clip_model.cpu()
+        torch.cuda.empty_cache()  # Clear GPU memory
 
         return score
 
