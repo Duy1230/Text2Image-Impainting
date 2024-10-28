@@ -68,6 +68,7 @@ class AdvancedInpaintingPipeline:
         mask = Image.fromarray(mask.astype(np.uint8) * 255)
         return mask
 
+    # TODO: Đây là đoạn code để chỉnh kích thước ảnh đầu ra nhưng bị lỗi cần phải sửa
     def postprocess_image(self, image: Image.Image, original_size: tuple, output_size: tuple = None):
         """
         Postprocess the image to match desired output size.
@@ -150,7 +151,8 @@ class AdvancedInpaintingPipeline:
             result = output.images[0]
 
             # Postprocess to desired size
-            result = self.postprocess_image(result, original_size, output_size)
+            # TODO: Đây là đoạn code để chỉnh kích thước ảnh đầu ra nhưng bị lỗi cần phải sửa
+            # result = self.postprocess_image(result, original_size, output_size)
 
             # Calculate CLIP score
             clip_score = self.get_clip_score(result, prompt)

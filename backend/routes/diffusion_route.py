@@ -88,9 +88,9 @@ async def inpainting(request: InpaintingRequest):
         image=source,
         mask=mask,
         prompt=prompt,
-        num_inference_steps=10,
+        num_inference_steps=20,
         guidance_scale=10,
-        num_samples=1  # Generate 3 samples and pick the best
+        num_samples=2  # Generate 3 samples and pick the best
     )
 
     final_result = inpainting_pipeline.post_process(result, source)
