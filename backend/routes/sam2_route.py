@@ -125,4 +125,5 @@ async def add_image(image: UploadFile = File(...)):
 
 @router.get("/get_masks")
 async def get_masks():
-    return sam2_model.get_masks()
+    masks = sam2_model.get_masks()
+    return masks.tolist()
