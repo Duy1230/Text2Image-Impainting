@@ -51,6 +51,7 @@ async def set_image(image: UploadFile = File(...)):
 class InpaintingRequest(BaseModel):
     prompt: str
     mask: list  # Change this to accept a list instead of np.ndarray
+    postprocess_mode: bool
 
     class Config:
         arbitrary_types_allowed = True
@@ -93,7 +94,10 @@ async def inpainting(request: InpaintingRequest):
         num_samples=2  # Generate 3 samples and pick the best
     )
 
-    final_result = inpainting_pipeline.post_process(result, source)
+    if request.postprocess_mode:
+        final_result = inpainting_pipeline.post_process(result, source)
+    else:
+        final_result = result
 
     # Create a byte stream to hold the image data
     img_byte_arr = BytesIO()

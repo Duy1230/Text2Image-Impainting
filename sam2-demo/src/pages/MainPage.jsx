@@ -7,6 +7,7 @@ export default function Component() {
   const [coordinates, setCoordinates] = useState(null)
   const [apiResponse, setApiResponse] = useState(null)
   const [singleTargetMode, setSingleTargetMode] = useState(true)
+  const [postprocessMode, setPostprocessMode] = useState(false)
   const imageMaskRef = useRef(null)
   const imageInpaintingRef = useRef(null)
   const segmentPrompt = useRef(null)
@@ -90,7 +91,8 @@ export default function Component() {
         // Inpainting
         const inpaintingResponse = await axiosInstance.post('/diffusion/inpainting', {
           prompt: inpaintingPrompt.current.value,
-          mask: masksResponse.data
+          mask: masksResponse.data,
+          postprocess_mode: postprocessMode
         }, { responseType: 'blob' })
 
         // Create a URL from the Blob
@@ -181,6 +183,16 @@ export default function Component() {
               />
               <label htmlFor="singleTargetMode" className="ml-2 text-sm text-gray-700">
                 Single Target Mode
+              </label>
+              <input 
+                type="checkbox" 
+                id="postprocessMode" 
+                checked={postprocessMode}
+                onChange={() => setPostprocessMode(!postprocessMode)}
+                className="ml-2 text-sm text-gray-700" 
+              />
+              <label htmlFor="postprocessMode" className="ml-2 text-sm text-gray-700">
+                Postprocess Mode
               </label>
             </div>
           </div>
