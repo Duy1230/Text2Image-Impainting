@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import axiosInstance from '../axiosInstance'
 
 export default function Component() {
-  const [image, setImage] = useState(null)
+  const [imageSegment, setImageSegment] = useState(null)
+  const [imageInpainting, setImageInpainting] = useState(null)
   const [coordinates, setCoordinates] = useState(null)
   const [apiResponse, setApiResponse] = useState(null)
   const [singleTargetMode, setSingleTargetMode] = useState(true)
-  const imageRef = useRef(null)
+  const imageMaskRef = useRef(null)
+  const imageInpaintingRef = useRef(null)
   const textPrompt = useRef(null)
 
   useEffect(() => {
@@ -66,8 +68,12 @@ export default function Component() {
           boxes: dinoResponse.data.boxes,
         }, { responseType: 'blob' })
 
+        // Create a URL from the Blob
+        const imageSegmentUrl = URL.createObjectURL(response.data)
+        setImageSegment(imageSegmentUrl)
+
         // Get masks from SAM2 (shape must be (1, H, W))
-        const masksResponse = await axiosInstance.post('/sam2/get_masks')
+        const masksResponse = await axiosInstance.get('/sam2/get_masks')
         console.log(masksResponse.data)
         
         // Inpainting
@@ -77,10 +83,10 @@ export default function Component() {
         }, { responseType: 'blob' })
 
         // Create a URL from the Blob
-        const imageUrl = URL.createObjectURL(inpaintingResponse.data)
+        const imageInpaintingUrl = URL.createObjectURL(inpaintingResponse.data)
         
         // Update the image state with the new URL
-        setImage(imageUrl)
+        setImageInpainting(imageInpaintingUrl)
       } catch (error) {
         console.error('Error in text segmentation:', error)
         setApiResponse('Error in text segmentation')
@@ -190,14 +196,14 @@ export default function Component() {
 
         {/* Right Section - 70% width */}
         <div className="w-7/10">
-          <div className="relative w-full h-fit bg-gray-100 rounded-lg flex items-center justify-center">
-            {image ? (
+          <div className="relative w-full h-fit bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+            {imageSegment ? (
               <div className="relative w-full h-full">
                 <img
-                  src={image}
+                  src={imageSegment}
                   alt="Uploaded image"
                   onClick={handleImageClick}
-                  ref={imageRef}
+                  ref={imageMaskRef}
                   className="w-full h-full object-contain rounded-lg shadow-lg cursor-crosshair"
                 />
                 {coordinates && (
@@ -209,6 +215,22 @@ export default function Component() {
             ) : (
               <div className="text-gray-400 text-lg">
                 Please upload an image
+              </div>
+            )}
+          </div>
+
+          <div className="relative w-full h-fit bg-gray-100 rounded-lg flex items-center justify-center">
+            {imageInpainting ? (
+              <div className="relative w-full h-full">
+                <img
+                  src={imageInpainting}
+                  alt="Inpainted image"
+                  className="w-full h-full object-contain rounded-lg shadow-lg"
+                />
+              </div>
+            ) : (
+              <div className="text-gray-400 text-lg">
+                Inpainting result will appear here
               </div>
             )}
           </div>

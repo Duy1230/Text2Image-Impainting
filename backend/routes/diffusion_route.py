@@ -50,7 +50,10 @@ async def set_image(image: UploadFile = File(...)):
 
 class InpaintingRequest(BaseModel):
     prompt: str
-    mask: np.ndarray
+    mask: list  # Change this to accept a list instead of np.ndarray
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 def convert_binary_mask_to_PIL(mask: np.ndarray):
@@ -76,7 +79,9 @@ def convert_binary_mask_to_PIL(mask: np.ndarray):
 async def inpainting(request: InpaintingRequest):
     prompt = request.prompt
     source = inpainting_pipeline.image
-    mask = convert_binary_mask_to_PIL(request.mask)
+    # Convert the list back to numpy array
+    mask_array = np.array(request.mask)
+    mask = convert_binary_mask_to_PIL(mask_array)
     mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
 
     result, clip_score = inpainting_pipeline.inpaint(

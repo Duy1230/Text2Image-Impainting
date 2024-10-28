@@ -128,5 +128,4 @@ async def get_masks():
     masks = sam2_model.get_masks()
     print("masks shape: ", masks.shape)
     print("masks original: ", masks)
-    print("masks list: ", masks.tolist())
     return masks.tolist()

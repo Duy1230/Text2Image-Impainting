@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.sam2_route import router as sam2_route
 from routes.groundingDINO_route import router as groundingdino_route
+from routes.diffusion_route import router as diffusion_route
 
 app = FastAPI(
     title="Chatbot API",
@@ -29,3 +30,4 @@ app.add_middleware(
 # include the route
 app.include_router(sam2_route, prefix="/sam2")
 app.include_router(groundingdino_route, prefix="/groundingdino")
+app.include_router(diffusion_route, prefix="/diffusion")
