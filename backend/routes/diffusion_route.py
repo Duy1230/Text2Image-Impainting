@@ -78,7 +78,7 @@ def convert_binary_mask_to_PIL(mask: np.ndarray):
 @router.post("/inpainting")
 async def inpainting(request: InpaintingRequest):
     prompt = request.prompt
-    source = inpainting_pipeline.image
+    source = inpainting_pipeline.source_image
     # Convert the list back to numpy array
     mask_array = np.array(request.mask)
     mask = convert_binary_mask_to_PIL(mask_array)

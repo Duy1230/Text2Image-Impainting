@@ -18,7 +18,7 @@ class AdvancedInpaintingPipeline:
 
         # Initialize SDXL
         self.inpaint_pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
-            "stabilityai/sdxl-turbo",
+            "stabilityai/stable-diffusion-xl-base-1.0",
             torch_dtype=torch.float16,
             variant="fp16"
         ).to(device)
@@ -43,7 +43,7 @@ class AdvancedInpaintingPipeline:
         ).to(device)
 
         # Initialize image
-        self.image = None
+        self.source_image = None
 
     def preprocess_image(self, image: Image.Image, target_size: int):
         """Preprocess the input image with custom size."""
@@ -219,7 +219,7 @@ class AdvancedInpaintingPipeline:
         return torch.clamp(source, 0, 1)
 
     def set_image(self, image_bytes: bytes):
-        self.image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        self.source_image = Image.open(BytesIO(image_bytes)).convert("RGB")
 
 
 inpainting_pipeline = AdvancedInpaintingPipeline()

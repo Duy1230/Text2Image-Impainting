@@ -9,20 +9,24 @@ export default function Component() {
   const [singleTargetMode, setSingleTargetMode] = useState(true)
   const imageMaskRef = useRef(null)
   const imageInpaintingRef = useRef(null)
-  const textPrompt = useRef(null)
+  const segmentPrompt = useRef(null)
+  const inpaintingPrompt = useRef(null)
 
   useEffect(() => {
     // Cleanup the object URL when the component unmounts or image changes
     return () => {
-      if (image) {
-        URL.revokeObjectURL(image)
+      if (imageSegment) {
+        URL.revokeObjectURL(imageSegment)
+      }
+      if (imageInpainting) {
+        URL.revokeObjectURL(imageInpainting)
       }
     }
-  }, [image])
+  }, [imageSegment, imageInpainting])
 
   const handleImageClick = async (event) => {
-    if (imageRef.current) {
-      const rect = imageRef.current.getBoundingClientRect()
+    if (imageMaskRef.current) {
+      const rect = imageMaskRef.current.getBoundingClientRect()
       const normalizedX = Math.round(event.clientX - rect.left) / rect.width
       const normalizedY = Math.round(event.clientY - rect.top) / rect.height
 
@@ -40,7 +44,7 @@ export default function Component() {
         const imageUrl = URL.createObjectURL(response.data)
         
         // Update the image state with the new URL
-        setImage(imageUrl)
+        setImageSegment(imageUrl)
       } catch (error) {
         console.error('Error segmenting image:', error)
         setApiResponse('Error segmenting image')
@@ -49,17 +53,24 @@ export default function Component() {
   }
 
   const handleTextSegment = async () => {
-    if (textPrompt.current.value === "") {
+    if (segmentPrompt.current.value === "") {
       setApiResponse("Please enter a text prompt")
       //change border to red
-      textPrompt.current.style.borderColor = "red"
-      textPrompt.current.style.borderWidth = "2px"
-      textPrompt.current.placeholder = "Please enter a text prompt"
-    } else {
+      segmentPrompt.current.style.borderColor = "red"
+      segmentPrompt.current.style.borderWidth = "2px"
+      segmentPrompt.current.placeholder = "Please enter a text prompt"
+    }
+    else if (inpaintingPrompt.current.value === "") {
+      setApiResponse("Please enter an inpainting prompt")
+      inpaintingPrompt.current.style.borderColor = "red"
+      inpaintingPrompt.current.style.borderWidth = "2px"
+      inpaintingPrompt.current.placeholder = "Please enter an inpainting prompt"
+    }
+    else {
       try {
         // First get the boxes from GroundingDINO
         const dinoResponse = await axiosInstance.post('/groundingdino/predict', { 
-          prompt: textPrompt.current.value,
+          prompt: segmentPrompt.current.value,
           single_target_mode: singleTargetMode
         })
         
@@ -78,7 +89,7 @@ export default function Component() {
         
         // Inpainting
         const inpaintingResponse = await axiosInstance.post('/diffusion/inpainting', {
-          prompt: textPrompt.current.value,
+          prompt: inpaintingPrompt.current.value,
           mask: masksResponse.data
         }, { responseType: 'blob' })
 
@@ -98,7 +109,7 @@ export default function Component() {
     const file = event.target.files[0]
     if (file) {
       const reader = new FileReader()
-      reader.onload = (e) => setImage(e.target.result)
+      reader.onload = (e) => setImageSegment(e.target.result)
       reader.readAsDataURL(file)
 
       const formData = new FormData()
@@ -108,6 +119,8 @@ export default function Component() {
         console.log(response_dino.data.message)
         const response_sam = await axiosInstance.post('/sam2/add-image', formData)
         console.log(response_sam.data.message)
+        const response_diffusion = await axiosInstance.post('/diffusion/set_image', formData)
+        console.log(response_diffusion.data.message)
         setApiResponse(response_sam.data.message)
       } catch (error) {
         console.error('Error uploading image:', error)
@@ -133,8 +146,8 @@ export default function Component() {
         <h1 className="text-4xl font-bold text-gray-800">Image Segmentation with SAM2</h1>
       </header>
       <main className="flex flex-row gap-8">
-        {/* Left Section - 30% width */}
-        <div className="w-3/10">
+        {/* Left Section - 50% width */}
+        <div className="w-5/10">
           <div className="mb-8">
             <input
               type="file"
@@ -172,17 +185,27 @@ export default function Component() {
             </div>
           </div>
           <textarea
-            className="w-full h-48 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-24 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter text prompt here..."
             onFocus={() => {
-              textPrompt.current.style.borderColor = "gray"
-              textPrompt.current.style.borderWidth = "1px"
+              segmentPrompt.current.style.borderColor = "gray"
+              segmentPrompt.current.style.borderWidth = "1px"
             }}
-            ref={textPrompt}
+            ref={segmentPrompt}
+          />
+          <textarea
+            className="w-full h-24 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter inpainting prompt here..."
+            onFocus={() => {
+              inpaintingPrompt.current.style.borderColor = "gray"
+              inpaintingPrompt.current.style.borderWidth = "1px"
+            }}
+            ref={inpaintingPrompt}
           />
           <button
             onClick={handleTextSegment}
-            className="mt-3 block w-full px-6 py-3 bg-blue-950 text-white font-bold rounded-lg cursor-pointer transition duration-300 hover:bg-blue-900 text-center"
+            disabled={imageMaskRef.current === null}
+            className="mt-3 block w-full px-6 py-3 bg-blue-950 text-white font-bold rounded-lg cursor-pointer transition duration-300 hover:bg-blue-900 text-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Segment
           </button>
@@ -194,9 +217,9 @@ export default function Component() {
           )}
         </div>
 
-        {/* Right Section - 70% width */}
-        <div className="w-7/10">
-          <div className="relative w-full h-fit bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+        {/* Right Section - 50% width */}
+        <div className="w-5/10">
+          <div className="relative w-full h-fit bg-gray-100 rounded-lg flex items-center justify-center mb-4 max-w-[500px]">
             {imageSegment ? (
               <div className="relative w-full h-full">
                 <img
@@ -225,6 +248,7 @@ export default function Component() {
                 <img
                   src={imageInpainting}
                   alt="Inpainted image"
+                  ref={imageInpaintingRef}  
                   className="w-full h-full object-contain rounded-lg shadow-lg"
                 />
               </div>
