@@ -158,5 +158,8 @@ class SAM2:
 
         return blended
 
+    def get_masks(self):
+        return self.masks
+
 
 sam2_model = SAM2()

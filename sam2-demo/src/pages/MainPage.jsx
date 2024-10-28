@@ -65,9 +65,19 @@ export default function Component() {
         const response = await axiosInstance.post('/sam2/segment_with_text', {
           boxes: dinoResponse.data.boxes,
         }, { responseType: 'blob' })
+
+        // Get masks from SAM2 (shape must be (1, H, W))
+        const masksResponse = await axiosInstance.post('/sam2/get_masks')
+        console.log(masksResponse.data)
         
+        // Inpainting
+        const inpaintingResponse = await axiosInstance.post('/diffusion/inpainting', {
+          prompt: textPrompt.current.value,
+          mask: masksResponse.data
+        }, { responseType: 'blob' })
+
         // Create a URL from the Blob
-        const imageUrl = URL.createObjectURL(response.data)
+        const imageUrl = URL.createObjectURL(inpaintingResponse.data)
         
         // Update the image state with the new URL
         setImage(imageUrl)

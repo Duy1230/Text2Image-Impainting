@@ -121,3 +121,8 @@ async def add_image(image: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error adding image: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_masks")
+async def get_masks():
+    return sam2_model.get_masks()

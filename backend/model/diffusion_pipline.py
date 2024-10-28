@@ -9,6 +9,7 @@ from diffusers import (
 from transformers import CLIPProcessor, CLIPModel
 import torch.nn.functional as F
 from PIL import Image, ImageFilter
+from io import BytesIO
 
 
 class AdvancedInpaintingPipeline:
@@ -17,7 +18,7 @@ class AdvancedInpaintingPipeline:
 
         # Initialize SDXL
         self.inpaint_pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0",
+            "stabilityai/sdxl-turbo",
             torch_dtype=torch.float16,
             variant="fp16"
         ).to(device)
@@ -40,6 +41,9 @@ class AdvancedInpaintingPipeline:
             "lllyasviel/control_v11p_sd15_inpaint",
             torch_dtype=torch.float16
         ).to(device)
+
+        # Initialize image
+        self.image = None
 
     def preprocess_image(self, image: Image.Image, target_size: int):
         """Preprocess the input image with custom size."""
@@ -213,3 +217,9 @@ class AdvancedInpaintingPipeline:
                               * (std_t / std_s)) + mean_t
 
         return torch.clamp(source, 0, 1)
+
+    def set_image(self, image_bytes: bytes):
+        self.image = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+
+inpainting_pipeline = AdvancedInpaintingPipeline()
