@@ -19,11 +19,12 @@ async def root():
 
 class GroundingDINORequest(BaseModel):
     prompt: str
+    single_target_mode: bool
 
 
 @router.post("/predict")
 async def predict(request: GroundingDINORequest):
-    groundingdino_model.predict(request.prompt)
+    groundingdino_model.predict(request.prompt, request.single_target_mode)
 
     print("boxes: ", groundingdino_model.get_boxes())
     print("logits: ", groundingdino_model.get_logits())

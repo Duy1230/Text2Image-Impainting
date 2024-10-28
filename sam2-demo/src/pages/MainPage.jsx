@@ -5,6 +5,7 @@ export default function Component() {
   const [image, setImage] = useState(null)
   const [coordinates, setCoordinates] = useState(null)
   const [apiResponse, setApiResponse] = useState(null)
+  const [singleTargetMode, setSingleTargetMode] = useState(true)
   const imageRef = useRef(null)
   const textPrompt = useRef(null)
 
@@ -56,12 +57,13 @@ export default function Component() {
       try {
         // First get the boxes from GroundingDINO
         const dinoResponse = await axiosInstance.post('/groundingdino/predict', { 
-          prompt: textPrompt.current.value 
+          prompt: textPrompt.current.value,
+          single_target_mode: singleTargetMode
         })
         
         // Then use the boxes for SAM2 segmentation
         const response = await axiosInstance.post('/sam2/segment_with_text', {
-          boxes: dinoResponse.data.boxes
+          boxes: dinoResponse.data.boxes,
         }, { responseType: 'blob' })
         
         // Create a URL from the Blob
@@ -138,7 +140,21 @@ export default function Component() {
               Test API
             </button>
           </div>
-
+          <div className="mb-4 p-4 border border-gray-300 rounded-lg">
+            <h3 className="font-semibold text-gray-700 mb-3">Settings</h3>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="singleTargetMode"
+                checked={singleTargetMode}
+                onChange={() => setSingleTargetMode(!singleTargetMode)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="singleTargetMode" className="ml-2 text-sm text-gray-700">
+                Single Target Mode
+              </label>
+            </div>
+          </div>
           <textarea
             className="w-full h-48 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter text prompt here..."

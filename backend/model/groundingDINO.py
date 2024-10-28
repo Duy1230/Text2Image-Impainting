@@ -28,7 +28,7 @@ class GroundingDINO:
         image_transformed, _ = transform(image_source, None)
         self.image_transformed = image_transformed
 
-    def predict(self, prompt: str):
+    def predict(self, prompt: str, single_target_mode: bool):
         boxes, logits, phrases = predict(
             model=self.model,
             image=self.image_transformed,
@@ -36,9 +36,15 @@ class GroundingDINO:
             box_threshold=BOX_TRESHOLD,
             text_threshold=TEXT_TRESHOLD
         )
-        self.boxes = boxes
-        self.logits = logits
-        self.phrases = phrases
+        if single_target_mode:
+            max_idx = logits.argmax()
+            self.boxes = boxes[max_idx].unsqueeze(0)  # Keep tensor format with single box
+            self.logits = logits[max_idx].unsqueeze(0)  # Keep tensor format with single logit
+            self.phrases = [phrases[max_idx]]  # Phrases is already a list
+        else:
+            self.boxes = boxes
+            self.logits = logits
+            self.phrases = phrases
 
     def get_boxes(self):
         return self.boxes.tolist()
