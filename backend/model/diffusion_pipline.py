@@ -20,9 +20,7 @@ class AdvancedInpaintingPipeline:
         self.inpaint_pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
             "stabilityai/stable-diffusion-xl-base-1.0",
             torch_dtype=torch.float16,
-            variant="fp16",
-            use_safetensors=True,
-            attention_mode="xformers"  # Enable memory efficient attention
+            variant="fp16"
         ).to(device)
 
         # Enable memory optimization
