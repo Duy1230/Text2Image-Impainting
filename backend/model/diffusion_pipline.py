@@ -2,7 +2,7 @@ import torch
 from PIL import Image
 import numpy as np
 from diffusers import (
-    StableDiffusionXLInpaintPipeline,
+    StableDiffusionXLControlNetInpaintPipeline,
     ControlNetModel,
     DDIMScheduler
 )
@@ -10,15 +10,32 @@ from transformers import CLIPProcessor, CLIPModel
 import torch.nn.functional as F
 from PIL import Image, ImageFilter
 from io import BytesIO
+import cv2
+
+
+def make_canny_condition(image):
+    image = np.array(image)
+    image = cv2.Canny(image, 100, 200)
+    image = image[:, :, None]
+    image = np.concatenate([image, image, image], axis=2)
+    image = Image.fromarray(image)
+    return image
 
 
 class AdvancedInpaintingPipeline:
     def __init__(self, device="cuda"):
         self.device = device
 
+        # Enable CPU offload for ControlNet
+        self.controlnet = ControlNetModel.from_pretrained(
+            "diffusers/controlnet-canny-sdxl-1.0",
+            torch_dtype=torch.float16
+        ).cpu()
+
         # Enable memory efficient attention
-        self.inpaint_pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
+        self.inpaint_pipe = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
             "stabilityai/stable-diffusion-xl-base-1.0",
+            controlnet=self.controlnet,
             torch_dtype=torch.float16,
             variant="fp16"
         ).to(device)
@@ -41,12 +58,6 @@ class AdvancedInpaintingPipeline:
             "openai/clip-vit-large-patch14"
         )
 
-        # Enable CPU offload for ControlNet
-        self.controlnet = ControlNetModel.from_pretrained(
-            "lllyasviel/control_v11p_sd15_inpaint",
-            torch_dtype=torch.float16
-        ).cpu()
-
         # Initialize image
         self.source_image = None
 
@@ -63,7 +74,9 @@ class AdvancedInpaintingPipeline:
                      (target_size - new_size[1]) // 2)
         new_image.paste(image, paste_pos)
 
-        return new_image
+        # Create a control image
+        control_image = make_canny_condition(new_image)
+        return new_image, control_image
 
     def preprocess_mask(self, mask: Image.Image, target_size: int):
         """Preprocess the mask with custom size."""
@@ -115,6 +128,7 @@ class AdvancedInpaintingPipeline:
         model_size: int = 1024,     # SDXL default size
         num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
+        eta: int = 1.0,
         num_samples: int = 1
     ):
         """
@@ -134,7 +148,8 @@ class AdvancedInpaintingPipeline:
         original_size = image.size
 
         # Preprocess inputs to model size
-        processed_image = self.preprocess_image(image, model_size)
+        processed_image, control_image = self.preprocess_image(
+            image, model_size)
         processed_mask = self.preprocess_mask(mask, model_size)
         enhanced_prompt = self.enhance_prompt(prompt)
 
@@ -147,9 +162,11 @@ class AdvancedInpaintingPipeline:
                 prompt=enhanced_prompt,
                 image=processed_image,
                 mask_image=processed_mask,
+                control_image=control_image,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
                 controlnet=self.controlnet,
+                eta=eta,
                 generator=torch.manual_seed(np.random.randint(0, 1000000))
             )
 
