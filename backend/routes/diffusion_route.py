@@ -4,7 +4,7 @@ from fastapi import File, Form, UploadFile
 from pydantic import BaseModel
 from io import BytesIO
 from PIL import Image, ImageFilter
-from model.diffusion_pipline import inpainting_pipeline
+from model.diffusion_pipline import inpainting_pipeline, make_canny_condition
 import numpy as np
 import logging
 
@@ -69,10 +69,8 @@ def convert_binary_mask_to_PIL(mask: np.ndarray):
     # Remove single channel dimension and expand to 3 channels
     mask = mask.squeeze(0)  # (H, W)
     mask = np.stack([mask] * 3, axis=-1)  # (H, W, 3)
-
     # Convert 1s to 255
     mask = (mask * 255).astype(np.uint8)
-
     return Image.fromarray(mask)
 
 
@@ -84,14 +82,18 @@ async def inpainting(request: InpaintingRequest):
     mask_array = np.array(request.mask)
     mask = convert_binary_mask_to_PIL(mask_array)
     mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
+    control_image = make_canny_condition(source)
+
 
     result, clip_score = inpainting_pipeline.inpaint(
         image=source,
         mask=mask,
         prompt=prompt,
+        control_image=control_image,
         num_inference_steps=20,
-        guidance_scale=10,
-        num_samples=2  # Generate 3 samples and pick the best
+        guidance_scale=7.5,
+        controlnet_conditioning_scale=0.5,
+        num_samples=1  # Generate 3 samples and pick the best
     )
 
     if request.postprocess_mode:

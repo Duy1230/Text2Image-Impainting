@@ -6,6 +6,7 @@ from diffusers import (
     ControlNetModel,
     DDIMScheduler
 )
+from safetensors.torch import load_file
 from transformers import CLIPProcessor, CLIPModel
 import torch.nn.functional as F
 from PIL import Image, ImageFilter
@@ -33,9 +34,10 @@ class AdvancedInpaintingPipeline:
         ).cpu()
 
         # Enable memory efficient attention
-        self.inpaint_pipe = StableDiffusionXLControlNetInpaintPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0",
+        self.inpaint_pipe = StableDiffusionXLControlNetInpaintPipeline.from_single_file(
+            "checkpoints/checkpoint.safetensors",
             controlnet=self.controlnet,
+            use_safetensors=True,
             torch_dtype=torch.float16,
             variant="fp16"
         ).to(device)
@@ -75,8 +77,8 @@ class AdvancedInpaintingPipeline:
         new_image.paste(image, paste_pos)
 
         # Create a control image
-        control_image = make_canny_condition(new_image)
-        return new_image, control_image
+        # control_image = make_canny_condition(new_image)
+        return new_image  # , control_image
 
     def preprocess_mask(self, mask: Image.Image, target_size: int):
         """Preprocess the mask with custom size."""
@@ -124,11 +126,13 @@ class AdvancedInpaintingPipeline:
         image: Image.Image,
         mask: Image.Image,
         prompt: str,
+        control_image: Image.Image = None,
         output_size: tuple = None,  # New parameter
         model_size: int = 1024,     # SDXL default size
         num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
         eta: int = 1.0,
+        controlnet_conditioning_scale: float = 0.2,
         num_samples: int = 1
     ):
         """
@@ -148,13 +152,18 @@ class AdvancedInpaintingPipeline:
         original_size = image.size
 
         # Preprocess inputs to model size
-        processed_image, control_image = self.preprocess_image(
-            image, model_size)
+        processed_image = self.preprocess_image(image, model_size)
         processed_mask = self.preprocess_mask(mask, model_size)
         enhanced_prompt = self.enhance_prompt(prompt)
 
         results = []
         scores = []
+
+        if control_image == None:
+            control_image = processed_image
+        else:
+            control_image = control_image.resize((processed_image.width,
+                                                 processed_image.height), Image.LANCZOS)
 
         for _ in range(num_samples):
             # Generate inpainting
@@ -167,6 +176,7 @@ class AdvancedInpaintingPipeline:
                 guidance_scale=guidance_scale,
                 controlnet=self.controlnet,
                 eta=eta,
+                controlnet_conditioning_scale=0.2,
                 generator=torch.manual_seed(np.random.randint(0, 1000000))
             )
 
