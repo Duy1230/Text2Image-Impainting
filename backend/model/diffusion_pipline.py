@@ -35,7 +35,7 @@ class AdvancedInpaintingPipeline:
 
         # Enable memory efficient attention
         self.inpaint_pipe = StableDiffusionXLControlNetInpaintPipeline.from_single_file(
-            "checkpoints/checkpoint.safetensors",
+            "../weights/diffusion_checkpoints/checkpoint.safetensors",
             controlnet=self.controlnet,
             use_safetensors=True,
             torch_dtype=torch.float16,
@@ -176,7 +176,7 @@ class AdvancedInpaintingPipeline:
                 guidance_scale=guidance_scale,
                 controlnet=self.controlnet,
                 eta=eta,
-                controlnet_conditioning_scale=0.2,
+                controlnet_conditioning_scale=controlnet_conditioning_scale,
                 generator=torch.manual_seed(np.random.randint(0, 1000000))
             )
 
