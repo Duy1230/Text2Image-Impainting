@@ -8,6 +8,12 @@ export default function Component() {
   const [apiResponse, setApiResponse] = useState(null)
   const [singleTargetMode, setSingleTargetMode] = useState(true)
   const [postprocessMode, setPostprocessMode] = useState(false)
+  const [isApplyingBlur, setIsApplyingBlur] = useState(true)
+  const [usingCannyControl, setUsingCannyControl] = useState(true)
+  const [numInferenceSteps, setNumInferenceSteps] = useState(12)
+  const [guidanceScale, setGuidanceScale] = useState(7.5)
+  const [controlnetScale, setControlnetScale] = useState(0.5)
+  const [numSamples, setNumSamples] = useState(1)
   const imageMaskRef = useRef(null)
   const imageInpaintingRef = useRef(null)
   const segmentPrompt = useRef(null)
@@ -92,7 +98,13 @@ export default function Component() {
         const inpaintingResponse = await axiosInstance.post('/diffusion/inpainting', {
           prompt: inpaintingPrompt.current.value,
           mask: masksResponse.data,
-          postprocess_mode: postprocessMode
+          postprocess_mode: postprocessMode,
+          is_applying_blur: isApplyingBlur,
+          using_canny_control: usingCannyControl,
+          num_inference_steps: numInferenceSteps,
+          guidance_scale: guidanceScale,
+          controlnet_scale: controlnetScale,
+          num_samples: numSamples
         }, { responseType: 'blob' })
 
         // Create a URL from the Blob
@@ -142,6 +154,15 @@ export default function Component() {
     }
   }
 
+  const updateSliderBackground = (e) => {
+    const target = e.target;
+    const min = target.min;
+    const max = target.max;
+    const val = target.value;
+    const percentage = (val - min) * 100 / (max - min);
+    target.style.backgroundSize = `${percentage}% 100%`;
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-8 font-sans">
       <header className="text-center mb-8">
@@ -173,27 +194,158 @@ export default function Component() {
           </div>
           <div className="mb-4 p-4 border border-gray-300 rounded-lg">
             <h3 className="font-semibold text-gray-700 mb-3">Settings</h3>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="singleTargetMode"
-                checked={singleTargetMode}
-                onChange={() => setSingleTargetMode(!singleTargetMode)}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="singleTargetMode" className="ml-2 text-sm text-gray-700">
-                Single Target Mode
-              </label>
-              <input 
-                type="checkbox" 
-                id="postprocessMode" 
-                checked={postprocessMode}
-                onChange={() => setPostprocessMode(!postprocessMode)}
-                className="ml-2 text-sm text-gray-700" 
-              />
-              <label htmlFor="postprocessMode" className="ml-2 text-sm text-gray-700">
-                Postprocess Mode
-              </label>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="singleTargetMode"
+                    checked={singleTargetMode}
+                    onChange={() => setSingleTargetMode(!singleTargetMode)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="singleTargetMode" className="ml-2 text-sm text-gray-700">
+                    Single Target Mode
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    id="postprocessMode" 
+                    checked={postprocessMode}
+                    onChange={() => setPostprocessMode(!postprocessMode)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="postprocessMode" className="ml-2 text-sm text-gray-700">
+                    Postprocess Mode
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isApplyingBlur"
+                    checked={isApplyingBlur}
+                    onChange={() => setIsApplyingBlur(!isApplyingBlur)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="isApplyingBlur" className="ml-2 text-sm text-gray-700">
+                    Apply Mask Blur
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="usingCannyControl"
+                    checked={usingCannyControl}
+                    onChange={() => setUsingCannyControl(!usingCannyControl)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="usingCannyControl" className="ml-2 text-sm text-gray-700">
+                    Use Canny Control
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label htmlFor="numInferenceSteps" className="block text-sm font-medium text-gray-700">
+                      Inference Steps
+                    </label>
+                    <span className="text-sm text-blue-600 font-medium">{numInferenceSteps}</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="numInferenceSteps"
+                    value={numInferenceSteps}
+                    onChange={(e) => {
+                      setNumInferenceSteps(Number(e.target.value));
+                      updateSliderBackground(e);
+                    }}
+                    onInput={updateSliderBackground}
+                    min="1"
+                    max="50"
+                    step="1"
+                    className="w-full"
+                    style={{ backgroundSize: `${(numInferenceSteps - 1) * 100 / 49}% 100%` }}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label htmlFor="guidanceScale" className="block text-sm font-medium text-gray-700">
+                      Guidance Scale
+                    </label>
+                    <span className="text-sm text-blue-600 font-medium">{guidanceScale}</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="guidanceScale"
+                    value={guidanceScale}
+                    onChange={(e) => {
+                      setGuidanceScale(Number(e.target.value));
+                      updateSliderBackground(e);
+                    }}
+                    onInput={updateSliderBackground}
+                    min="1"
+                    max="15"
+                    step="0.5"
+                    className="w-full"
+                    style={{ backgroundSize: `${(guidanceScale - 1) * 100 / 14}% 100%` }}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label htmlFor="controlnetScale" className="block text-sm font-medium text-gray-700">
+                      ControlNet Scale
+                    </label>
+                    <span className="text-sm text-blue-600 font-medium">{controlnetScale}</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="controlnetScale"
+                    value={controlnetScale}
+                    onChange={(e) => {
+                      setControlnetScale(Number(e.target.value));
+                      updateSliderBackground(e);
+                    }}
+                    onInput={updateSliderBackground}
+                    min="0"
+                    max="1"
+                    step="0.02"
+                    className="w-full"
+                    style={{ backgroundSize: `${controlnetScale * 100}% 100%` }}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label htmlFor="numSamples" className="block text-sm font-medium text-gray-700">
+                      Number of Samples
+                    </label>
+                    <span className="text-sm text-blue-600 font-medium">{numSamples}</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="numSamples"
+                    value={numSamples}
+                    onChange={(e) => {
+                      setNumSamples(Number(e.target.value));
+                      updateSliderBackground(e);
+                    }}
+                    onInput={updateSliderBackground}
+                    min="0"
+                    max="5"
+                    step="1"
+                    className="w-full"
+                    style={{ backgroundSize: `${numSamples * 100 / 5}% 100%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <textarea
