@@ -48,15 +48,6 @@ async def set_image(image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class InpaintingRequest(BaseModel):
-    prompt: str
-    mask: list  # Change this to accept a list instead of np.ndarray
-    postprocess_mode: bool
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
 def convert_binary_mask_to_PIL(mask: np.ndarray):
     """Convert binary mask to PIL Image.
 
@@ -74,6 +65,21 @@ def convert_binary_mask_to_PIL(mask: np.ndarray):
     return Image.fromarray(mask)
 
 
+class InpaintingRequest(BaseModel):
+    prompt: str
+    mask: list  # Change this to accept a list instead of np.ndarray
+    postprocess_mode: bool
+    is_applying_blur: bool
+    using_canny_control_image: bool
+    num_inference_steps: int
+    guidance_scale: float
+    controlnet_conditioning_scale: float
+    num_samples: int
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
 @router.post("/inpainting")
 async def inpainting(request: InpaintingRequest):
     prompt = request.prompt
@@ -81,19 +87,22 @@ async def inpainting(request: InpaintingRequest):
     # Convert the list back to numpy array
     mask_array = np.array(request.mask)
     mask = convert_binary_mask_to_PIL(mask_array)
-    mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
-    control_image = make_canny_condition(source)
-
+    if request.is_applying_blur:
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
+    if request.using_canny_control_image:
+        control_image = make_canny_condition(source)
+    else:
+        control_image = None
 
     result, clip_score = inpainting_pipeline.inpaint(
         image=source,
         mask=mask,
         prompt=prompt,
         control_image=control_image,
-        num_inference_steps=20,
-        guidance_scale=7.5,
-        controlnet_conditioning_scale=0.5,
-        num_samples=1  # Generate 3 samples and pick the best
+        num_inference_steps=request.num_inference_steps,
+        guidance_scale=request.guidance_scale,
+        controlnet_conditioning_scale=request.controlnet_conditioning_scale,
+        num_samples=request.num_samples  # Generate 3 samples and pick the best
     )
 
     if request.postprocess_mode:

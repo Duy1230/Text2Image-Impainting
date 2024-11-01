@@ -126,8 +126,8 @@ class AdvancedInpaintingPipeline:
         image: Image.Image,
         mask: Image.Image,
         prompt: str,
-        control_image: Image.Image = None,
-        output_size: tuple = None,  # New parameter
+        control_image: Image.Image | None = None,
+        output_size: tuple | None = None,  # New parameter
         model_size: int = 1024,     # SDXL default size
         num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
