@@ -19,6 +19,9 @@ def base64_to_image(base64_string):
 class SAM2:
     def __init__(self, model_name: str = "facebook/sam2-hiera-tiny"):
         self.predictor = SAM2ImagePredictor.from_pretrained(model_name)
+        # Move model to GPU if available
+        if torch.cuda.is_available():
+            self.predictor.to(device="cuda")
 
     def set_image(self, image_bytes: bytes):
         """
@@ -162,4 +165,5 @@ class SAM2:
         return self.masks
 
 
+# When creating the global instance, also move to GPU
 sam2_model = SAM2()

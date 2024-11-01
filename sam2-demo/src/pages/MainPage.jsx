@@ -100,10 +100,10 @@ export default function Component() {
           mask: masksResponse.data,
           postprocess_mode: postprocessMode,
           is_applying_blur: isApplyingBlur,
-          using_canny_control: usingCannyControl,
+          using_canny_control_image: usingCannyControl,
           num_inference_steps: numInferenceSteps,
           guidance_scale: guidanceScale,
-          controlnet_scale: controlnetScale,
+          controlnet_conditioning_scale: controlnetScale,
           num_samples: numSamples
         }, { responseType: 'blob' })
 

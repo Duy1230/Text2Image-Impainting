@@ -1,5 +1,5 @@
 const config = {
-    apiBaseUrl: 'https://7971-35-193-205-3.ngrok-free.app'
+    apiBaseUrl: 'https://134c-34-16-43-9.ngrok-free.app'
   };
   
   export default config;

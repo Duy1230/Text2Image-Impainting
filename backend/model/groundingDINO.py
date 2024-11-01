@@ -3,6 +3,7 @@ import groundingdino.datasets.transforms as T
 from PIL import Image
 from io import BytesIO
 import numpy as np
+import torch
 
 BOX_TRESHOLD = 0.35
 TEXT_TRESHOLD = 0.25
@@ -15,6 +16,9 @@ class GroundingDINO:
         self.boxes = None
         self.logits = None
         self.phrases = None
+
+        if torch.cuda.is_available():
+            self.model.to(device="cuda")
 
     def set_image(self, image_bytes: bytes):
         transform = T.Compose(
@@ -38,8 +42,10 @@ class GroundingDINO:
         )
         if single_target_mode:
             max_idx = logits.argmax()
-            self.boxes = boxes[max_idx].unsqueeze(0)  # Keep tensor format with single box
-            self.logits = logits[max_idx].unsqueeze(0)  # Keep tensor format with single logit
+            # Keep tensor format with single box
+            self.boxes = boxes[max_idx].unsqueeze(0)
+            # Keep tensor format with single logit
+            self.logits = logits[max_idx].unsqueeze(0)
             self.phrases = [phrases[max_idx]]  # Phrases is already a list
         else:
             self.boxes = boxes
