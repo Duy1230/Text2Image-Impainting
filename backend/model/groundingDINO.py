@@ -17,9 +17,6 @@ class GroundingDINO:
         self.logits = None
         self.phrases = None
 
-        if torch.cuda.is_available():
-            self.model.to(device="cuda")
-
     def set_image(self, image_bytes: bytes):
         transform = T.Compose(
             [
