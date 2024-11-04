@@ -49,19 +49,24 @@ async def set_image(image: UploadFile = File(...)):
 
 
 def convert_binary_mask_to_PIL(mask: np.ndarray):
-    """Convert binary mask to PIL Image.
+    """Convert mask to binary mask and then to PIL Image.
 
     Args:
-        mask: Binary mask of shape (1, H, W) containing only 0s and 1s
+        mask: Mask array of shape (1, H, W). If not binary, will be thresholded at 0.5
 
     Returns:
         PIL Image with shape (H, W, 3) where 1s are converted to 255
     """
+    # Ensure mask is binary
+    if not np.array_equal(mask, mask.astype(bool)):
+        # If mask contains values other than 0 and 1, threshold at 0.5
+        mask = (mask > 0.5).astype(np.float32)
+
     # Remove single channel dimension and expand to 3 channels
     mask = mask.squeeze(0)  # (H, W)
     mask = np.stack([mask] * 3, axis=-1)  # (H, W, 3)
     # Convert 1s to 255
-    # mask = (mask * 255).astype(np.uint8)
+    mask = (mask * 255).astype(np.uint8)
     return Image.fromarray(mask)
 
 
