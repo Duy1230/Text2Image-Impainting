@@ -67,7 +67,7 @@ def convert_binary_mask_to_PIL(mask: np.ndarray):
     mask = np.stack([mask] * 3, axis=-1)  # (H, W, 3)
     # Convert 1s to 255
     mask = (mask * 255).astype(np.uint8)
-    return Image.fromarray(mask)
+    return Image.fromarray(mask).convert("RGB")
 
 
 class InpaintingRequest(BaseModel):
