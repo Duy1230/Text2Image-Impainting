@@ -14,6 +14,7 @@ export default function Component() {
   const [guidanceScale, setGuidanceScale] = useState(7.5)
   const [controlnetScale, setControlnetScale] = useState(0.5)
   const [numSamples, setNumSamples] = useState(1)
+  const [maskRescaleFactor, setmaskRescaleFactor] = useState(1)
   const imageMaskRef = useRef(null)
   const imageInpaintingRef = useRef(null)
   const segmentPrompt = useRef(null)
@@ -104,7 +105,8 @@ export default function Component() {
           num_inference_steps: numInferenceSteps,
           guidance_scale: guidanceScale,
           controlnet_conditioning_scale: controlnetScale,
-          num_samples: numSamples
+          num_samples: numSamples,
+          mask_rescale: maskRescaleFactor
         }, { responseType: 'blob' })
 
         // Create a URL from the Blob
@@ -341,6 +343,30 @@ export default function Component() {
                     min="0"
                     max="5"
                     step="1"
+                    className="w-full"
+                    style={{ backgroundSize: `${numSamples * 100 / 5}% 100%` }}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label htmlFor="maskRescaleFactor" className="block text-sm font-medium text-gray-700">
+                      Mask Rescale Factor
+                    </label>
+                    <span className="text-sm text-blue-600 font-medium">{numSamples}</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="maskRescaleFactor"
+                    value={maskRescaleFactor}
+                    onChange={(e) => {
+                      setmaskRescaleFactor(Number(e.target.value));
+                      updateSliderBackground(e);
+                    }}
+                    onInput={updateSliderBackground}
+                    min="0"
+                    max="2"
+                    step="0.01"
                     className="w-full"
                     style={{ backgroundSize: `${numSamples * 100 / 5}% 100%` }}
                   />
