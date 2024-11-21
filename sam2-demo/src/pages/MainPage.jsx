@@ -353,7 +353,7 @@ export default function Component() {
                     <label htmlFor="maskRescaleFactor" className="block text-sm font-medium text-gray-700">
                       Mask Rescale Factor
                     </label>
-                    <span className="text-sm text-blue-600 font-medium">{numSamples}</span>
+                    <span className="text-sm text-blue-600 font-medium">{maskRescaleFactor}</span>
                   </div>
                   <input
                     type="range"
@@ -368,7 +368,7 @@ export default function Component() {
                     max="2"
                     step="0.01"
                     className="w-full"
-                    style={{ backgroundSize: `${numSamples * 100 / 5}% 100%` }}
+                    style={{ backgroundSize: `${maskRescaleFactor * 100 / 2}% 100%` }}
                   />
                 </div>
               </div>
