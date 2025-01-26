@@ -80,9 +80,61 @@ class InpaintingRequest(BaseModel):
     guidance_scale: float
     controlnet_conditioning_scale: float
     num_samples: int
+    mask_rescale: float
 
     class Config:
         arbitrary_types_allowed = True
+
+
+def resize_and_crop_center(image: Image.Image, k: float) -> Image.Image:
+    """
+    Resize image by factor k and handle the result to match original size.
+    If k > 1: crops the center region
+    If k < 1: pads the borders with black
+
+    Args:
+        image: PIL Image object
+        k: scaling factor (must be > 0)
+
+    Returns:
+        PIL Image with original size
+    """
+    if k <= 0:
+        raise ValueError("Scale factor k must be greater than 0")
+    # Get original dimensions
+    original_width, original_height = image.size
+
+    # Calculate new dimensions
+    new_width = int(original_width * k)
+    new_height = int(original_height * k)
+
+    # Resize image
+    resized_image = image.resize(
+        (new_width, new_height), Image.Resampling.LANCZOS)
+
+    if k >= 1:
+        # Calculate crop coordinates
+        left = (new_width - original_width) // 2
+        top = (new_height - original_height) // 2
+        right = left + original_width
+        bottom = top + original_height
+
+        # Crop center region
+        result_image = resized_image.crop((left, top, right, bottom))
+    else:
+        # Create black background
+        result_array = np.zeros(
+            (original_height, original_width, 3), dtype=np.uint8)
+        result_image = Image.fromarray(result_array)
+
+        # Calculate paste coordinates
+        left = (original_width - new_width) // 2
+        top = (original_height - new_height) // 2
+
+        # Paste resized image onto black background
+        result_image.paste(resized_image, (left, top))
+
+    return result_image
 
 
 @router.post("/inpainting")
@@ -92,6 +144,7 @@ async def inpainting(request: InpaintingRequest):
     # Convert the list back to numpy array
     mask_array = np.array(request.mask)
     mask = convert_binary_mask_to_PIL(mask_array)
+    mask = resize_and_crop_center(mask, request.mask_rescale)
     if request.is_applying_blur:
         mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
     if request.using_canny_control_image:

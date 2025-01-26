@@ -27,22 +27,22 @@ class AdvancedInpaintingPipeline:
     def __init__(self, device="cuda"):
         self.device = device
 
-        # Enable CPU offload for ControlNet
+        # Load ControlNet model
         self.controlnet = ControlNetModel.from_pretrained(
             "diffusers/controlnet-canny-sdxl-1.0",
             torch_dtype=torch.float16
-        ).cpu()
+        ).to(self.device)
 
-        # Enable memory efficient attention
+        # Load Inpainting Pipeline
         self.inpaint_pipe = StableDiffusionXLControlNetInpaintPipeline.from_single_file(
             "weights/diffusion_checkpoints/checkpoint.safetensors",
             controlnet=self.controlnet,
             use_safetensors=True,
             torch_dtype=torch.float16,
             variant="fp16"
-        ).to(device)
+        ).to(self.device)
 
-        # Enable memory optimization
+        # Enable memory optimizations
         self.inpaint_pipe.enable_model_cpu_offload()
         self.inpaint_pipe.enable_vae_slicing()
 
@@ -51,11 +51,11 @@ class AdvancedInpaintingPipeline:
             self.inpaint_pipe.scheduler.config
         )
 
-        # Move CLIP to CPU and only transfer to GPU when needed
+        # Load CLIP model
         self.clip_model = CLIPModel.from_pretrained(
             "openai/clip-vit-large-patch14",
             torch_dtype=torch.float16
-        ).cpu()
+        ).to(self.device)
         self.clip_processor = CLIPProcessor.from_pretrained(
             "openai/clip-vit-large-patch14"
         )
@@ -121,17 +121,18 @@ class AdvancedInpaintingPipeline:
 
         return image
 
+    @torch.no_grad()
     def inpaint(
         self,
         image: Image.Image,
         mask: Image.Image,
         prompt: str,
         control_image: Image.Image | None = None,
-        output_size: tuple | None = None,  # New parameter
-        model_size: int = 1024,     # SDXL default size
+        output_size: tuple | None = None,
+        model_size: int = 1024,
         num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
-        eta: int = 1.0,
+        eta: float = 1.0,
         controlnet_conditioning_scale: float = 0.2,
         num_samples: int = 1
     ):
@@ -174,8 +175,6 @@ class AdvancedInpaintingPipeline:
                 control_image=control_image,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
-                controlnet=self.controlnet,
-                eta=eta,
                 controlnet_conditioning_scale=controlnet_conditioning_scale,
                 generator=torch.manual_seed(np.random.randint(0, 1000000))
             )
