@@ -1,0 +1,19 @@
+# Core dependencies
+numpy>=1.26.4
+Pillow>=10.3.0
+opencv-python>=4.9.0.80
+torch>=2.3.0
+fastapi>=0.111.0
+uvicorn>=0.29.0
+python-multipart>=0.0.9
+pydantic>=2.7.2
+
+# Computer Vision/ML specific
+diffusers>=0.28.0
+transformers>=4.41.0
+safetensors>=0.4.3
+groundingdino>=0.1.0
+torchvision>=0.18.0
+
+# Optional/Version specific (adjust based on your CUDA version)
+# torch==2.3.0+cu121  # Uncomment if you need specific CUDA version
